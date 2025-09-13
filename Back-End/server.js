@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion ,ObjectId} = require('mongodb');
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const validator = require("validator");
@@ -161,6 +161,31 @@ class Feedback_Database {
             throw error;
         }
     }
+    async Delete_Course(courseId)
+    {
+        try{
+            if (!ObjectId.isValid(courseId)) {
+                console.error("Error: The provided course ID is not a valid ObjectId.");
+                throw new Error("Invalid course ID.");
+            }
+            const filter = { _id: new ObjectId(courseId) };
+
+            const result = await this.database.collection('Course').deleteOne(filter);
+
+            if (result.deletedCount === 1) {
+                console.log(`Successfully deleted the course with ID: ${courseId}`);
+                return { success: true, message: `Course ${courseId} deleted.` };
+            } else {
+                console.log(`No course found with ID: ${courseId}`);
+                return { success: false, message: `No course found with ID: ${courseId}.` };
+            }
+        }
+        catch(error)
+        {
+            console.error("An unexpected error occurred during deletion:", error);
+            throw error;
+        }
+    }
 }
 (async () => {
     const db = new Feedback_Database(process.env.MONGODB_URL);
@@ -170,8 +195,10 @@ class Feedback_Database {
     // await db.Insert_Courses(adm_id, "Math");
     // const stdlogin=await db.Student_Login_check("mahanshetty488@gmail.com","abcdefgh1@");
     // console.log(stdlogin);
-    const adlogin=await db.Admin_Login_check("mahanshetty488@gmail.com","abcdefgh1@");
-    console.log(adlogin);
+    // const adlogin=await db.Admin_Login_check("mahanshetty488@gmail.com","abcdefgh1@");
+    // console.log(adlogin);
+    const deletedcourses=await db.Delete_Course('68c5abcd803a4b1a29fcab6b');
+    console.log(deletedcourses);
     await db.closeConnection();
 })();
 module.exports = { Feedback_Database };
