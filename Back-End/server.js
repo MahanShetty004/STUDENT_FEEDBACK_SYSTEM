@@ -178,7 +178,6 @@ class Feedback_Database {
                 throw new Error("Invalid course ID.");
             }
             const filter = { _id: new ObjectId(courseId) };
-
             const result = await this.database.collection('Course').deleteOne(filter);
 
             if (result.deletedCount === 1) {
@@ -204,54 +203,74 @@ class Feedback_Database {
                 console.error("Error: The provided course ID is not a valid ObjectId.");
                 throw new Error("Invalid course ID.");
             }
-            await this.database.collection('Feedback').insertOne({
+            const result=await this.database.collection('Feedback').insertOne({
                 std_id: Student_id,
                 course_id: course_id,
                 rating: rating,
                 comment: message
             });
+            return result.insertedId;
         }
         catch (error) {
-            if(error.code===11000)
-            {
+            if (error.code === 11000) {
                 console.error("Error: Feedback alredy given");
             }
-            else{
+            else {
                 console.error("An unexpected error occurred during insertion:", error);
             }
             throw error;
         }
     }
-    async Student_Feedback(st_id)
-    {
-        try{
-            const result=await this.database.collection('Feedback').find({std_id:st_id}).toArray();
+    async Student_Feedback(st_id) {
+        try {
+            const result = await this.database.collection('Feedback').find({ std_id: st_id }).toArray();
             return result;
         }
-        catch(error)
-        {
+        catch (error) {
             console.error("An unexpected error occurred during finding the feedback:", error);
             throw error;
+        }
+    }
+    async Delete_Student_Feedback(std_feedback) {
+        try {
+            if (!ObjectId.isValid(std_feedback)) {
+                console.error("Error: The provided Feedback ID is not a valid ObjectId.");
+                throw new Error("Invalid Feedback ID.");
+            }
+            const filter = { _id: new ObjectId(std_feedback) };
+            const result = await this.database.collection('Feedback').deleteOne(filter);
+
+            if (result.deletedCount === 1) {
+                console.log(`Successfully deleted the Feedback  with ID: ${std_feedback}`);
+                return { success: true, message: `Feedback  ${std_feedback} deleted.` };
+            } else {
+                console.log(`No course found with ID: ${std_feedback}`);
+                return { success: false, message: `No Feedback  found with ID: ${std_feedback}.` };
+            }
+        }
+        catch (error) {
+            console.error("An unexpected error occurred during deletion:", error);
         }
     }
 }
 (async () => {
     const db = new Feedback_Database(process.env.MONGODB_URL);
     await db.connectToDatabase();
-    const st_id = await db.Insert_Student("Mahan", "abcdefgh1@", "mahanshetty488@gmail.com");
-    const adm_id = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty488@gmail.com");
-    const c_id = await db.Insert_Courses(adm_id, "Math");
-    const c_id2 = await db.Insert_Courses(adm_id, "Science");
+    // const st_id = await db.Insert_Student("Mahan", "abcdefgh1@", "mahanshetty488@gmail.com");
+    // const adm_id = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty488@gmail.com");
+    // const c_id = await db.Insert_Courses(adm_id, "Math");
+    // const c_id2 = await db.Insert_Courses(adm_id, "Science");
     // const stdlogin = await db.Student_Login_check("mahanshetty488@gmail.com", "abcdefgh1@");
     // console.log(stdlogin);
     // const adlogin = await db.Admin_Login_check("mahanshetty488@gmail.com", "abcdefgh1@");
     // console.log(adlogin);
     // const deletedcourses=await db.Delete_Course('68c5abcd803a4b1a29fcab6b');
     // console.log(deletedcourses);
-    await db.Insert_Feedback(st_id,c_id,4,"Great course");
-    await db.Insert_Feedback(st_id,c_id2,5,"Great course");
-    const std_feedback=await db.Student_Feedback(st_id);
-    console.log(std_feedback);
+    // const fed1=await db.Insert_Feedback(st_id,c_id,4,"Great course");
+    // const fed2=await db.Insert_Feedback(st_id,c_id2,5,"Great course");
+    // await db.Delete_Student_Feedback(fed1);
+    // const std_feedback=await db.Student_Feedback(st_id);
+    // console.log(std_feedback);
     await db.closeConnection();
 })();
 module.exports = { Feedback_Database };
