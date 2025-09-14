@@ -203,7 +203,7 @@ class Feedback_Database {
                 console.error("Error: The provided course ID is not a valid ObjectId.");
                 throw new Error("Invalid course ID.");
             }
-            const result=await this.database.collection('Feedback').insertOne({
+            const result = await this.database.collection('Feedback').insertOne({
                 std_id: Student_id,
                 course_id: course_id,
                 rating: rating,
@@ -218,16 +218,6 @@ class Feedback_Database {
             else {
                 console.error("An unexpected error occurred during insertion:", error);
             }
-            throw error;
-        }
-    }
-    async Student_Feedback(st_id) {
-        try {
-            const result = await this.database.collection('Feedback').find({ std_id: st_id }).toArray();
-            return result;
-        }
-        catch (error) {
-            console.error("An unexpected error occurred during finding the feedback:", error);
             throw error;
         }
     }
@@ -252,6 +242,58 @@ class Feedback_Database {
             console.error("An unexpected error occurred during deletion:", error);
         }
     }
+    async Edit_Student_Feedback(std_feedback, rating, message) {
+        try {
+            if (!ObjectId.isValid(std_feedback)) {
+                console.error("Error: The provided Feedback ID is not a valid ObjectId.");
+                throw new Error("Invalid Feedback ID.");
+            }
+            const filter = { _id: new ObjectId(std_feedback) };
+            const result = await this.database.collection('Feedback').updateOne(filter, {
+                $set: {
+                    rating: rating,
+                    comment: message,
+                },
+            });
+            if (result.modifiedCount === 1) {
+                console.log(`Successfully updated feedback with ID: ${std_feedback}`);
+                return { success: true, message: "Feedback updated." };
+            } else {
+                console.log(`No feedback found with ID: ${std_feedback} or no changes were made.`);
+                return { success: false, message: "Feedback not updated." };
+            }
+        }
+        catch (error) {
+            console.error("An unexpected error occurred during editing:", error);
+            throw error
+        }
+    }
+    async GetFilteredFeedback(courseId, studentId, rating) {
+        try {
+            const filter = {};
+            if (courseId) {
+                if (!ObjectId.isValid(courseId)) {
+                    throw new Error("Invalid course ID.");
+                }
+                filter.course_id = new ObjectId(courseId);
+            }
+            if (studentId) {
+                if (!ObjectId.isValid(studentId)) {
+                    throw new Error("Invalid student ID.");
+                }
+                filter.std_id = new ObjectId(studentId);
+            }
+            if (rating) {
+                filter.rating = parseInt(rating);
+            }
+            const result = await this.database.collection('Feedback').find(filter).toArray();
+            return result;
+
+        } catch (error) {
+            console.error("An unexpected error occurred during filtering feedback:", error);
+            throw error;
+        }
+    }
 }
 (async () => {
     const db = new Feedback_Database(process.env.MONGODB_URL);
@@ -266,11 +308,12 @@ class Feedback_Database {
     // console.log(adlogin);
     // const deletedcourses=await db.Delete_Course('68c5abcd803a4b1a29fcab6b');
     // console.log(deletedcourses);
-    // const fed1=await db.Insert_Feedback(st_id,c_id,4,"Great course");
-    // const fed2=await db.Insert_Feedback(st_id,c_id2,5,"Great course");
+    // const fed1 = await db.Insert_Feedback(st_id, c_id, 4, "Great course");
+    // const fed2 = await db.Insert_Feedback(st_id, c_id2, 5, "Great course");
     // await db.Delete_Student_Feedback(fed1);
-    // const std_feedback=await db.Student_Feedback(st_id);
-    // console.log(std_feedback);
+    // await db.Edit_Student_Feedback(fed2,2,"Not Good");
+    // const feed_back = await db.GetFilteredFeedback(null, st_id, null);
+    // console.log(feed_back);
     await db.closeConnection();
 })();
 module.exports = { Feedback_Database };
