@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #e0eafc; /* fallback for old browsers */
+    background: linear-gradient(to right, #cfdef3, #e0eafc);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: #333;
+    animation: background-fade 1.5s ease-in-out; /* Page background animation */
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 400px; /* Slightly wider to accommodate text and icons better */
+    max-width: 90%;
+    text-align: center;
+    animation: form-fade-in 0.8s ease-out forwards; /* Container load-in animation */
+}
+
+h2 {
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #444;
+    font-size: 1.8em; /* Slightly larger heading */
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 20px; /* Space between buttons */
+    margin-top: 30px;
+}
+
+.login-button {
+    padding: 15px 25px; /* More padding */
+    font-size: 1.1em; /* Slightly larger font */
+    border: none;
+    border-radius: 8px; /* Rounded corners */
+    cursor: pointer;
+    color: white;
+    font-weight: 500;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex; /* Allow icon and text to align */
+    align-items: center;
+    justify-content: center;
+    gap: 10px; /* Space between icon and text */
+}
+
+.login-button i {
+    font-size: 1.2em; /* Size for the icons */
+}
+
+.admin-button {
+    background-color: #007bff;
+}
+
+.admin-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.student-button {
+    background-color: #28a745;
+}
+
+.student-button:hover {
+    background-color: #218838;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Animations (reused from previous examples) */
+@keyframes form-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes background-fade {
+    from {
+        opacity: 0.8;
+    }
+    to {
+        opacity: 1;
+    }
+}
