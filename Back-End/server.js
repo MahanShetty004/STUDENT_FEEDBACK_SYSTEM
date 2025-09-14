@@ -268,15 +268,33 @@ class Feedback_Database {
             throw error
         }
     }
-    async GetFilteredFeedback(courseId, studentId, rating) {
+    async GetAdminDrivenFilteredFeedback(adminId, courseId, studentId, rating) {
         try {
+            if (!ObjectId.isValid(adminId)) {
+                throw new Error("Invalid admin ID.");
+            }
             const filter = {};
+            let targetCourseIds = [];
             if (courseId) {
                 if (!ObjectId.isValid(courseId)) {
                     throw new Error("Invalid course ID.");
                 }
-                filter.course_id = new ObjectId(courseId);
+                const course = await this.database.collection('Course').findOne({
+                    _id: new ObjectId(courseId),
+                    ad_id: new ObjectId(adminId)
+                });
+                if (!course) {
+                    return [];
+                }
+                targetCourseIds = [new ObjectId(courseId)];
+            } else {
+                const courses = await this.database.collection('Course').find({ ad_id: new ObjectId(adminId) }, { _id: 1 }).toArray();
+                targetCourseIds = courses.map(c => c._id);
             }
+            if (targetCourseIds.length === 0) {
+                return [];
+            }
+            filter.course_id = { $in: targetCourseIds };
             if (studentId) {
                 if (!ObjectId.isValid(studentId)) {
                     throw new Error("Invalid student ID.");
@@ -288,32 +306,54 @@ class Feedback_Database {
             }
             const result = await this.database.collection('Feedback').find(filter).toArray();
             return result;
-
         } catch (error) {
-            console.error("An unexpected error occurred during filtering feedback:", error);
+            console.error("An unexpected error occurred during filtered feedback retrieval:", error);
             throw error;
         }
     }
+   async GetStudentFilteredFeedback(studentId, rating) {
+    try {
+        if (!ObjectId.isValid(studentId)) {
+            throw new Error("Invalid student ID.");
+        }
+        const filter = {
+            std_id: new ObjectId(studentId)
+        };
+        if (rating) {
+            filter.rating = parseInt(rating);
+        }
+        const result = await this.database.collection('Feedback').find(filter).toArray();
+        return result;
+    } catch (error) {
+        console.error("An unexpected error occurred during filtered feedback retrieval:", error);
+        throw error;
+    }
+}
 }
 (async () => {
     const db = new Feedback_Database(process.env.MONGODB_URL);
     await db.connectToDatabase();
     // const st_id = await db.Insert_Student("Mahan", "abcdefgh1@", "mahanshetty488@gmail.com");
     // const adm_id = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty488@gmail.com");
+    // const adm_id2 = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty88@gmail.com");
     // const c_id = await db.Insert_Courses(adm_id, "Math");
     // const c_id2 = await db.Insert_Courses(adm_id, "Science");
+    // const c_id22 = await db.Insert_Courses(adm_id2, "Dsa");
     // const stdlogin = await db.Student_Login_check("mahanshetty488@gmail.com", "abcdefgh1@");
     // console.log(stdlogin);
     // const adlogin = await db.Admin_Login_check("mahanshetty488@gmail.com", "abcdefgh1@");
     // console.log(adlogin);
     // const deletedcourses=await db.Delete_Course('68c5abcd803a4b1a29fcab6b');
     // console.log(deletedcourses);
-    // const fed1 = await db.Insert_Feedback(st_id, c_id, 4, "Great course");
+    // const fed1 = await db.Insert_Feedback('68c66fcf03059c7fdb5820c2', '68c66fd003059c7fdb5820c5', 4, "Great course");
     // const fed2 = await db.Insert_Feedback(st_id, c_id2, 5, "Great course");
+    // const fed3 = await db.Insert_Feedback(st_id, c_id22, 3, "Okay");
     // await db.Delete_Student_Feedback(fed1);
     // await db.Edit_Student_Feedback(fed2,2,"Not Good");
-    // const feed_back = await db.GetFilteredFeedback(null, st_id, null);
+    // const feed_back = await db.GetAdminDrivenFilteredFeedback(adm_id2,null,null, null);
+    // const std_feed_back=await db.GetStudentFilteredFeedback(st_id,null);
     // console.log(feed_back);
+    // console.log(std_feed_back);
     await db.closeConnection();
 })();
 module.exports = { Feedback_Database };
