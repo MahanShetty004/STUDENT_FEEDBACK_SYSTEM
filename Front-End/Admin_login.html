@@ -13,7 +13,7 @@
             <h1>Admin Login</h1>
             <h2>Welcome Back</h2>
         </header>
-        <form action="#" method="post">
+        <form id="loginForm" action="#" method="post">
             <div class="form-group">
                 <label for="email">Email or Username</label>
                 <div class="input-container">
@@ -30,9 +30,63 @@
             </div>
             <button type="submit">Log In</button>
         </form>
+        <!-- Message display area -->
+        <div id="statusMessage" style="display: none; margin-top: 1rem; padding: 1rem; border-radius: 0.5rem; text-align: center;"></div>
         <div class="signup-link">
             <p>Don't have an account? <a href=Admin_signup.html>Sign up here</a></p>
         </div>
     </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Function to display messages
+        function displayMessage(message, isSuccess) {
+            statusMessage.textContent = message;
+            statusMessage.style.display = 'block';
+            if (isSuccess) {
+                statusMessage.style.backgroundColor = '#d1e7dd';
+                statusMessage.style.color = '#155724';
+            } else {
+                statusMessage.style.backgroundColor = '#f8d7da';
+                statusMessage.style.color = '#721c24';
+            }
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Hide previous messages
+            statusMessage.style.display = 'none';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayMessage(result.message, true);
+                    alert('Sign up successful!');
+                    // You can redirect the user here if needed, for example:
+                    window.location.href = 'admindashboard.html';
+                } else {
+                    displayMessage(result.message, false);
+                }
+            } catch (error) {
+                console.error('Network or unexpected error:', error);
+                displayMessage('An unexpected error occurred. Please try again.', false);
+            }
+        });
+    </script>
 </body>
 </html>

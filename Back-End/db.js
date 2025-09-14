@@ -76,7 +76,7 @@ class Feedback_Database {
         }
         catch (error) {
             if (error.code == 11000) {
-                console.error("Error: A user with this name/email already exists.");
+                throw new Error("Error: A user with this name/email already exists.");
             } else {
                 console.error("An unexpected error occurred during insertion:", error);
             }
@@ -120,7 +120,7 @@ class Feedback_Database {
             const user = await this.database.collection('Student').findOne({ std_email: email });
             if (!user) {
                 console.error("User not found.");
-                return { success: false, message: "Invalid email or password." };
+                throw new Error( "Invalid email or password." );
             }
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (passwordMatch) {
@@ -128,7 +128,7 @@ class Feedback_Database {
                 return { success: true, message: "Login successful.", user: user };
             } else {
                 console.error("Incorrect password for user:", user.std_email);
-                return { success: false, message: "Invalid email or password." };
+                throw new Error( "Invalid email or password." );
             }
         }
         catch (error) {
@@ -141,15 +141,15 @@ class Feedback_Database {
             const user = await this.database.collection('Admin').findOne({ ad_email: email });
             if (!user) {
                 console.error("User not found.");
-                return { success: false, message: "Invalid email or password." };
+                throw new Error("Invalid email or password." );
             }
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (passwordMatch) {
-                console.log("Login successful for user:", user.std_email);
+                console.log("Login successful for user:", user.ad_email);
                 return { success: true, message: "Login successful.", user: user };
             } else {
-                console.error("Incorrect password for user:", user.std_email);
-                return { success: false, message: "Invalid email or password." };
+                console.error("Incorrect password for user:", user.ad_email);
+                throw new Error("Invalid email or password." );
             }
         }
         catch (error) {
