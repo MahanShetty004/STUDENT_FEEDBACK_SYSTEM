@@ -206,6 +206,21 @@ class Feedback_Database {
                 console.error("Error: The provided course ID is not a valid ObjectId.");
                 throw new Error("Invalid course ID.");
             }
+            const filter = { _id: new ObjectId(course_id) };
+            const admin = await this.database.collection('Course').findOne(filter);
+            if (!admin) {
+                throw new Error("Course not found.");
+            }
+            const blk = await this.database.collection('Block_user').findOne({ std_id: Student_id, ad_id: admin.ad_id });
+            console.log(blk);
+            if (blk)
+                throw new Error("The Student has been Blocked by the user");
+            if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+                throw new Error("Rating must be a number between 1 and 5.");
+            }
+            if (typeof message !== 'string' || message.trim().length === 0) {
+                throw new Error("Feedback message cannot be empty.");
+            }
             const result = await this.database.collection('Feedback').insertOne({
                 std_id: Student_id,
                 course_id: course_id,
@@ -397,76 +412,121 @@ class Feedback_Database {
         }
     }
     async SetPassword(std_id, oldpassword, newpassword) {
-    try {
-        if (!ObjectId.isValid(std_id)) {
-            throw new Error("Invalid student ID.");
-        }
-        const filter = {
-            _id: new ObjectId(std_id)
-        };
-        const user = await this.database.collection('Student').findOne(filter);
-        if (!user) {
-            throw new Error("Student not found.");
-        }
-        const passwordMatch = await bcrypt.compare(oldpassword, user.password); 
-        if (!passwordMatch) {
-            throw new Error("Incorrect current password.");
-        }
-        if (!validator.isStrongPassword(newpassword, {
-            minLength: 8,
-            minNumbers: 1,
-            minSymbols: 1,
-            minLowercase: 0,
-            minUppercase: 0
-        })) {
-            throw new Error("Password must be at least 8 characters long and contain at least 1 number and 1 special character.");
-        }
-        const hashedPassword = await bcrypt.hash(newpassword, 10);
-        const result = await this.database.collection('Student').updateOne(filter, {
-            $set: {
-                password: hashedPassword
+        try {
+            if (!ObjectId.isValid(std_id)) {
+                throw new Error("Invalid student ID.");
             }
-        });
-        if (result.matchedCount === 0) {
-            throw new Error("Password update failed. Document not found.");
+            const filter = {
+                _id: new ObjectId(std_id)
+            };
+            const user = await this.database.collection('Student').findOne(filter);
+            if (!user) {
+                throw new Error("Student not found.");
+            }
+            const passwordMatch = await bcrypt.compare(oldpassword, user.password);
+            if (!passwordMatch) {
+                throw new Error("Incorrect current password.");
+            }
+            if (!validator.isStrongPassword(newpassword, {
+                minLength: 8,
+                minNumbers: 1,
+                minSymbols: 1,
+                minLowercase: 0,
+                minUppercase: 0
+            })) {
+                throw new Error("Password must be at least 8 characters long and contain at least 1 number and 1 special character.");
+            }
+            const hashedPassword = await bcrypt.hash(newpassword, 10);
+            const result = await this.database.collection('Student').updateOne(filter, {
+                $set: {
+                    password: hashedPassword
+                }
+            });
+            if (result.matchedCount === 0) {
+                throw new Error("Password update failed. Document not found.");
+            }
+            return {
+                message: "Password updated successfully."
+            };
+        } catch (error) {
+            console.error("Error updating password:", error.message);
+            throw error;
         }
-        return {
-            message: "Password updated successfully."
-        };
-    } catch (error) {
-        console.error("Error updating password:", error.message);
-        throw error;
     }
-}
+    async BlockUser(adid, stdid) {
+        try {
+            if (!ObjectId.isValid(stdid)) {
+                throw new Error("Invalid student ID.");
+            }
+            if (!ObjectId.isValid(adid)) {
+                throw new Error("Invalid Admin ID.");
+            }
+            await this.database.collection('Block_user').insertOne({
+                std_id: stdid,
+                ad_id: adid
+            });
+        }
+        catch (error) {
+            console.error("Error while inserting", error);
+            throw error;
+        }
+    }
+    async RemoveBlockUser(adid, stdid) {
+        try {
+            if (!ObjectId.isValid(stdid)) {
+                throw new Error("Invalid student ID.");
+            }
+            if (!ObjectId.isValid(adid)) {
+                throw new Error("Invalid Admin ID.");
+            }
+            const studentObjectId = new ObjectId(stdid);
+            const adminObjectId = new ObjectId(adid);
+            const result = await this.database.collection('Block_user').deleteOne({
+                std_id: studentObjectId,
+                ad_id: adminObjectId
+            });
+            if (result.deletedCount === 0) {
+                throw new Error("Block record not found. User may not be blocked by this admin.");
+            }
+            return { message: "User unblocked successfully." };
+        }
+        catch (error) {
+            console.error("Error while delting", error);
+            throw error;
+        }
+    }
 }
 (async () => {
     const db = new Feedback_Database(process.env.MONGODB_URL);
     await db.connectToDatabase();
-    // const st_id = await db.Insert_Student("Mahan", "abcdefgh1@", "mahanshetty488@gmail.com");
-    // const adm_id = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty488@gmail.com");
-    // const adm_id2 = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty88@gmail.com");
-    // const c_id = await db.Insert_Courses(adm_id, "Math");
-    // const c_id2 = await db.Insert_Courses(adm_id, "Science");
-    // const c_id22 = await db.Insert_Courses(adm_id2, "Dsa");
+    const st_id = await db.Insert_Student("Mahan", "abcdefgh1@", "mahanshetty488@gmail.com");
+    const adm_id = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty488@gmail.com");
+    const adm_id2 = await db.Insert_Admin("MAHANJ", "abcdefgh1@", "mahanshetty88@gmail.com");
+    const c_id = await db.Insert_Courses(adm_id, "Math");
+    const c_id2 = await db.Insert_Courses(adm_id, "Science");
+    const c_id22 = await db.Insert_Courses(adm_id2, "Dsa");
     // const stdlogin = await db.Student_Login_check("mahanshetty488@gmail.com", "abcdefgh1@");
     // console.log(stdlogin);
     // const adlogin = await db.Admin_Login_check("mahanshetty488@gmail.com", "abcdefgh1@");
     // console.log(adlogin);
     // const deletedcourses=await db.Delete_Course('68c5abcd803a4b1a29fcab6b');
     // console.log(deletedcourses);
-    // const fed1 = await db.Insert_Feedback('68c66fcf03059c7fdb5820c2', '68c66fd003059c7fdb5820c5', 4, "Great course");
-    // const fed2 = await db.Insert_Feedback(st_id, c_id2, 5, "Great course");
-    // const fed3 = await db.Insert_Feedback(st_id, c_id22, 3, "Okay");
+    const fed1 = await db.Insert_Feedback(st_id, c_id, 4, "Great course");
+    const fed2 = await db.Insert_Feedback(st_id, c_id2, 5, "Great course");
     // await db.Delete_Student_Feedback(fed1);
     // await db.Edit_Student_Feedback(fed2,2,"Not Good");
     // const feed_back = await db.GetAdminDrivenFilteredFeedback(adm_id2,null,null, null);
-    // const std_feed_back=await db.GetStudentFilteredFeedback(st_id,null);
-    // const uphone = await db.SetStudentphonenum(st_id, '6363647815');
-    // const uDOB = await db.SetStudentDOB(st_id, '2004-08-16');
-    // const uAdress = await db.SetStudentAddress(st_id, '#31 4th cross bapuji Layout');
-    // const password=await db.SetPassword('68c68e03a8778a92b12199fa',"bbcdefgh1@","cbcdefgh1@");
     // console.log(feed_back);
+    // const std_feed_back=await db.GetStudentFilteredFeedback(st_id,null);
     // console.log(std_feed_back);
+    const uphone = await db.SetStudentphonenum(st_id, '6363647815');
+    const uDOB = await db.SetStudentDOB(st_id, '2004-08-16');
+    const uAdress = await db.SetStudentAddress(st_id, '#31 4th cross bapuji Layout');
+    // const password=await db.SetPassword('68c68e03a8778a92b12199fa',"bbcdefgh1@","cbcdefgh1@");
+    await db.BlockUser(adm_id2, st_id);
+    const fed3 = await db.Insert_Feedback(st_id, c_id22, 3, "Okay");
+    // const remblock=await db.RemoveBlockUser('68c6a2aec2fbf4ce31a30102','68c6a2aec2fbf4ce31a30101');
+    // console.log(remblock);
     await db.closeConnection();
 })();
 module.exports = { Feedback_Database };
