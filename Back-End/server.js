@@ -67,7 +67,10 @@ class Feedback_Database {
             const result = await this.database.collection('Student').insertOne({
                 std_name: user_name,
                 std_email: email,
-                password: hashedPassword
+                password: hashedPassword,
+                std_phoneno: "",
+                DOB: "",
+                Address: "",
             });
             return result.insertedId;
         }
@@ -311,21 +314,127 @@ class Feedback_Database {
             throw error;
         }
     }
-   async GetStudentFilteredFeedback(studentId, rating) {
+    async GetStudentFilteredFeedback(studentId, rating) {
+        try {
+            if (!ObjectId.isValid(studentId)) {
+                throw new Error("Invalid student ID.");
+            }
+            const filter = {
+                std_id: new ObjectId(studentId)
+            };
+            if (rating) {
+                filter.rating = parseInt(rating);
+            }
+            const result = await this.database.collection('Feedback').find(filter).toArray();
+            return result;
+        } catch (error) {
+            console.error("An unexpected error occurred during filtered feedback retrieval:", error);
+            throw error;
+        }
+    }
+    async SetStudentphonenum(stdid, phno) {
+        try {
+            if (!ObjectId.isValid(stdid)) {
+                throw new Error("Invalid student ID.");
+            }
+            const filter = {
+                _id: new ObjectId(stdid)
+            };
+
+            if (!validator.isMobilePhone(phno, 'any')) {
+                throw new Error("Invalid phone number format.");
+            }
+            const result = await this.database.collection('Student').updateOne(filter, { $set: { std_phoneno: phno } });
+            if (result.matchedCount === 0) {
+                throw new Error("Student not found.");
+            }
+            return { message: "Phone number updated successfully." };
+        } catch (error) {
+            throw error;
+        }
+    }
+    async SetStudentDOB(stdid, dob) {
+        try {
+            if (!ObjectId.isValid(stdid)) {
+                throw new Error("Invalid student ID.");
+            }
+            const filter = {
+                _id: new ObjectId(stdid)
+            };
+            if (!validator.isDate(dob)) {
+                throw new Error("Invalid date of birth format. Please use YYYY-MM-DD.");
+            }
+
+            const result = await this.database.collection('Student').updateOne(filter, { $set: { DOB: dob } });
+
+            if (result.matchedCount === 0) {
+                throw new Error("Student not found.");
+            }
+
+            return { message: "Date of birth updated successfully." };
+        } catch (error) {
+            throw error;
+        }
+    }
+    async SetStudentAddress(stdid, address) {
+        try {
+            if (!ObjectId.isValid(stdid)) {
+                throw new Error("Invalid student ID.");
+            }
+            const filter = {
+                _id: new ObjectId(stdid)
+            };
+
+            const result = await this.database.collection('Student').updateOne(filter, { $set: { Address: address } });
+
+            if (result.matchedCount === 0) {
+                throw new Error("Student not found.");
+            }
+
+            return { message: "Address updated successfully." };
+        } catch (error) {
+            throw error;
+        }
+    }
+    async SetPassword(std_id, oldpassword, newpassword) {
     try {
-        if (!ObjectId.isValid(studentId)) {
+        if (!ObjectId.isValid(std_id)) {
             throw new Error("Invalid student ID.");
         }
         const filter = {
-            std_id: new ObjectId(studentId)
+            _id: new ObjectId(std_id)
         };
-        if (rating) {
-            filter.rating = parseInt(rating);
+        const user = await this.database.collection('Student').findOne(filter);
+        if (!user) {
+            throw new Error("Student not found.");
         }
-        const result = await this.database.collection('Feedback').find(filter).toArray();
-        return result;
+        const passwordMatch = await bcrypt.compare(oldpassword, user.password); 
+        if (!passwordMatch) {
+            throw new Error("Incorrect current password.");
+        }
+        if (!validator.isStrongPassword(newpassword, {
+            minLength: 8,
+            minNumbers: 1,
+            minSymbols: 1,
+            minLowercase: 0,
+            minUppercase: 0
+        })) {
+            throw new Error("Password must be at least 8 characters long and contain at least 1 number and 1 special character.");
+        }
+        const hashedPassword = await bcrypt.hash(newpassword, 10);
+        const result = await this.database.collection('Student').updateOne(filter, {
+            $set: {
+                password: hashedPassword
+            }
+        });
+        if (result.matchedCount === 0) {
+            throw new Error("Password update failed. Document not found.");
+        }
+        return {
+            message: "Password updated successfully."
+        };
     } catch (error) {
-        console.error("An unexpected error occurred during filtered feedback retrieval:", error);
+        console.error("Error updating password:", error.message);
         throw error;
     }
 }
@@ -352,6 +461,10 @@ class Feedback_Database {
     // await db.Edit_Student_Feedback(fed2,2,"Not Good");
     // const feed_back = await db.GetAdminDrivenFilteredFeedback(adm_id2,null,null, null);
     // const std_feed_back=await db.GetStudentFilteredFeedback(st_id,null);
+    // const uphone = await db.SetStudentphonenum(st_id, '6363647815');
+    // const uDOB = await db.SetStudentDOB(st_id, '2004-08-16');
+    // const uAdress = await db.SetStudentAddress(st_id, '#31 4th cross bapuji Layout');
+    // const password=await db.SetPassword('68c68e03a8778a92b12199fa',"bbcdefgh1@","cbcdefgh1@");
     // console.log(feed_back);
     // console.log(std_feed_back);
     await db.closeConnection();
