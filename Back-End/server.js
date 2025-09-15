@@ -154,8 +154,8 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 // Protected route for student profile
-app.get('/api/student/profile', authMiddleware, async(req, res) => {
-    const result=await db.GetStudentProfile(req.user.id);
+app.get('/api/student/profile', authMiddleware, async (req, res) => {
+    const result = await db.GetStudentProfile(req.user.id);
     console.log(result);
     res.status(200).json({
         message: "You have accessed a protected student route.",
@@ -164,11 +164,14 @@ app.get('/api/student/profile', authMiddleware, async(req, res) => {
 });
 
 // Protected route for admin profile
-app.get('/api/admin/profile', authMiddleware, adminMiddleware, (req, res) => {
-    res.status(200).json({
-        message: "You have accessed a protected admin route.",
-        user: req.user
-    });
+app.get('/api/admin/profile', authMiddleware, adminMiddleware, async (req, res) => {
+    const st_size = await db.Getregisterstudnum();
+    const fd_size = await db.Getfeddbacknum();
+    let opt = {};
+    opt.totalFeedbacks = fd_size;
+    opt.totalStudents = st_size;
+    console.log(opt);
+    return res.status(200).json(opt);
 });
 
 // GET all courses for an admin
@@ -313,8 +316,8 @@ app.delete('/api/student/feedbacks/:id', authMiddleware, async (req, res) => {
 });
 
 app.put('/me', authMiddleware, async (req, res) => {
-const { std_name, std_phoneno, DOB, Address } = req.body;
-    
+    const { std_name, std_phoneno, DOB, Address } = req.body;
+
     // Create an empty object to store only the updates that were sent
     const updates = {};
     if (std_name) updates.std_name = std_name;
@@ -337,26 +340,67 @@ const { std_name, std_phoneno, DOB, Address } = req.body;
         res.status(500).json({ message: 'Internal server error.' });
     }
 });
-app.post('/change-password',authMiddleware, async (req, res) =>{
+app.post('/change-password', authMiddleware, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-    try{
+    try {
 
         // Basic validation to ensure both fields are present
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ message: 'Current and new password are required.' });
         }
-        const success = await db.SetPassword(req.user.id,currentPassword, newPassword);
+        const success = await db.SetPassword(req.user.id, currentPassword, newPassword);
         if (success) {
             res.status(200).json({ message: 'Password changed successfully!' });
         } else {
             res.status(500).json({ message: 'Failed to update password.' });
         }
     }
-    catch(error){
+    catch (error) {
         console.error('Error changing password:', error);
         res.status(500).json({ message: 'An unexpected server error occurred.' });
     }
 });
+app.get('/admin/students', authMiddleware, adminMiddleware, async (req, res) => {
+    const id = req.user.id;
+    try {
+        let student = await db.BlockStatus(id);
+        console.log(student);
+        res.status(200).json(student);
+    }
+    catch (error) {
+        throw error;
+    }
+});
+app.post('/admin/block-user/:userId', async (req, res) => {
+    try {
+        // 1. Get the userId from the URL parameters.
+        const { userId } = req.params;
+
+        // 2. Call the dedicated function to handle the business logic.
+        const updatedUser = await toggleUserBlockStatus(userId);
+
+        // 3. Send a success response with the updated user data.
+        res.status(200).json({ 
+            message: `User ${updatedUser.name} block status updated to ${updatedUser.isBlocked}.`,
+            isBlocked: updatedUser.isBlocked 
+        });
+    } catch (error) {
+        // Catch any errors thrown by the database function.
+        const statusCode = error.status || 500;
+        res.status(statusCode).json({ message: error.message });
+    }
+});
+app.delete('/admin/delete-user/:id',authMiddleware,adminMiddleware,async(req,res)=>{
+    const {id}=req.params;
+    try{
+       const result= await db.deleteUser(id);
+       res.status(201).json(result);
+    }
+    catch(error)
+    {
+        throw error;
+    }
+})
 // Start the server after connecting to the database
 async function startServer() {
     try {

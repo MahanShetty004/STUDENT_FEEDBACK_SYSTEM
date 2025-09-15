@@ -108,7 +108,7 @@ class Feedback_Database {
             return result.insertedId;
         }
         catch (error) {
-            if (error.code ===11000) {
+            if (error.code === 11000) {
                 console.error("Error: A user with this name/email already exists.");
                 throw new Error("An account with this email already exists.");
             } else {
@@ -122,7 +122,7 @@ class Feedback_Database {
             const user = await this.database.collection('Student').findOne({ std_email: email });
             if (!user) {
                 console.error("User not found.");
-                throw new Error( "Invalid email or password." );
+                throw new Error("Invalid email or password.");
             }
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (passwordMatch) {
@@ -130,7 +130,7 @@ class Feedback_Database {
                 return { success: true, message: "Login successful.", user: user };
             } else {
                 console.error("Incorrect password for user:", user.std_email);
-                throw new Error("Invalid email or password." );
+                throw new Error("Invalid email or password.");
             }
         }
         catch (error) {
@@ -143,15 +143,16 @@ class Feedback_Database {
             const user = await this.database.collection('Admin').findOne({ ad_email: email });
             if (!user) {
                 console.error("User not found.");
-                throw new Error( "Invalid email or password." );
+                throw new Error("Invalid email or password.");
             }
             const passwordMatch = await bcrypt.compare(password, user.password);
+            console.log(user);
             if (passwordMatch) {
-                console.log("Login successful for user:", user.std_email);
+                console.log("Login successful for user:", user.ad_email);
                 return { success: true, message: "Login successful.", user: user };
             } else {
                 // console.error("Incorrect password for user:", user.std_email);
-                throw new Error("Invalid email or password." );
+                throw new Error("Invalid email or password.");
             }
         }
         catch (error) {
@@ -225,7 +226,7 @@ class Feedback_Database {
                 course_id: course_id,
                 rating: rating,
                 comment: message,
-                coursename:admin.ad_name
+                coursename: admin.ad_name
             });
             return result.insertedId;
         }
@@ -347,14 +348,12 @@ class Feedback_Database {
             throw new Error("An unexpected error occurred while retrieving feedback.");
         }
     }
-    async GetCourses()
-    {
-        try{
-            const result=await this.database.collection('Course').find({}).toArray();
+    async GetCourses() {
+        try {
+            const result = await this.database.collection('Course').find({}).toArray();
             return result;
         }
-        catch(error)
-        {
+        catch (error) {
             throw error;
         }
     }
@@ -367,17 +366,17 @@ class Feedback_Database {
             console.log(updates);
             const filter = { _id: new ObjectId(stdid) };
 
-        const result = await this.database.collection('Student').updateOne(
-            filter,          
-            { $set: updates }    
-        );  
-           // The update operation using $set
+            const result = await this.database.collection('Student').updateOne(
+                filter,
+                { $set: updates }
+            );
+            // The update operation using $set
             if (result.matchedCount === 0) {
                 throw new Error("Student not found.");
             }
             return { message: " updated successfully." };
         } catch (error) {
-           throw error;
+            throw error;
         }
     }
     async SetStudentDOB(stdid, dob) {
@@ -465,34 +464,67 @@ class Feedback_Database {
             if (!ObjectId.isValid(adid)) {
                 throw new Error("Invalid Admin ID.");
             }
-            await this.database.collection('Block_user').insertOne({
+            const inse = await this.database.collection('Block_user').insertOne({
                 std_id: stdid,
                 ad_id: adid
             });
+            return inse.insertedId;
         }
         catch (error) {
             console.error("Error while inserting", error);
             throw new Error("An unexpected error occurred while blocking the user.");
         }
     }
-    async RemoveBlockUser(adid, stdid) {
+    async Blockornot(shouldBlock,adminId, userId) {
+        try {
+            console.log(userId);
+        if (!ObjectId.isValid(userId)) {
+            throw new Error("Invalid student ID.");
+        }
+        if (!ObjectId.isValid(adminId)) {
+            throw new Error("Invalid Admin ID.");
+        }
+
+        // Convert string IDs to ObjectId type for the database query
+        const stdObjId = new ObjectId(userId);
+        const adObjId = new ObjectId(adminId);
+
+        if (shouldBlock) {
+            // Block the user by inserting a new document
+            const result = await this.database.collection('Block_user').insertOne({
+                std_id: stdObjId,
+                ad_id: adObjId
+            });
+            // Returns true if a document was successfully inserted
+            return result.insertedId != null;
+        } else {
+            // Unblock the user by deleting an existing document
+            const result = await this.database.collection('Block_user').deleteOne({
+                std_id: stdObjId
+            });
+            // Returns true if a document was deleted
+            return result.deletedCount > 0;
+        }
+    } catch (error) {
+        // Log the specific error for debugging
+        console.error("Database Error in Blockornot:", error.message);
+        throw new Error("An unexpected error occurred while processing the request.");
+    }
+    }
+    
+    async deleteUser(stdid) {
         try {
             if (!ObjectId.isValid(stdid)) {
                 throw new Error("Invalid student ID.");
             }
-            if (!ObjectId.isValid(adid)) {
-                throw new Error("Invalid Admin ID.");
-            }
             const studentObjectId = new ObjectId(stdid);
-            const adminObjectId = new ObjectId(adid);
-            const result = await this.database.collection('Block_user').deleteOne({
-                std_id: studentObjectId,
-                ad_id: adminObjectId
+            const result = await this.database.collection('Student').deleteOne({
+                _id: studentObjectId
             });
             if (result.deletedCount === 0) {
-                throw new Error("Block record not found. User may not be blocked by this admin.");
+                throw new Error("Account not found.");
             }
-            return { message: "User unblocked successfully." };
+            return { message: "Account deleted" };
         }
         catch (error) {
             console.error("Error while delting", error);
@@ -531,18 +563,96 @@ class Feedback_Database {
             throw new Error("An unexpected error occurred while updating the course.");
         }
     }
-    async GetStudentProfile(std_id){
-        try{
+    async GetStudentProfile(std_id) {
+        try {
             if (!ObjectId.isValid(std_id)) {
                 throw new Error("Invalid Student ID.");
             }
             const filter = {
                 _id: new ObjectId(std_id)
             };
-            const student=await this.database.collection('Student').findOne(filter);
+            const student = await this.database.collection('Student').findOne(filter);
             return student;
         }
-        catch(error){
+        catch (error) {
+            throw error;
+        }
+    }
+    async Getregisterstudnum() {
+        try {
+            const res = await this.database.collection('Student').find({}).toArray();
+            return res.length;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async Getfeddbacknum() {
+        try {
+            const res = await this.database.collection('Feedback').find({}).toArray();
+            return res.length;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async  toggleUserBlockStatus(userId) {
+    // 1. Find the user in our mock database.
+    const user = users.find(u => u.id === userId);
+
+    // 2. If the user is not found, throw an error.
+    if (!user) {
+        // We throw an error here so the calling function (the route)
+        // can handle the response gracefully.
+        const error = new Error("User not found.");
+        error.status = 404; // Add a status code for the route handler to use
+        throw error;
+    }
+
+    // 3. Toggle the user's blocked status.
+    user.isBlocked = !user.isBlocked;
+
+    // 4. Return the updated user object.
+    return user;
+}
+
+    async BlockStatus(adm_d) {
+        try {
+            const students = await this.database.collection('Student').aggregate([
+                {
+                    $lookup: {
+                        from: "Block_user",
+                        let: { std_id: "$_id" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: { $eq: ["$std_id", "$$std_id"] },
+                                    ad_id: new ObjectId(adm_d)
+                                }
+                            }
+                        ],
+                        as: "blockedStatus"
+                    }
+                },
+                {
+                    $addFields: {
+                        isBlocked: { $ne: ["$blockedStatus", []] }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        std_name: 1,
+                        std_email: 1,
+                        isBlocked: 1
+                    }
+                }
+            ]).toArray(); // <-- This is the key change
+
+            // Send the clean, non-circular array as the response
+            return students;
+        }
+        catch (error) {
             throw error;
         }
     }

@@ -199,6 +199,12 @@
         let profileLoaded = false;
 
         document.addEventListener('DOMContentLoaded', loadProfile);
+        if (!token) {
+            showMessage('Unauthorized! Please login as Admin.', true);
+            setTimeout(() => {
+                window.location.href = 'student_login.html';
+            }, 1000);
+        }
 
         function loadProfile() {
             if (profileLoaded) return;

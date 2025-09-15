@@ -1,202 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            margin: 20px;
+            font-family: 'Inter', sans-serif;
         }
-
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-        }
-
-        h1, h2 {
-            text-align: center;
-            color: #333;
-        }
-
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: center;
-        }
-
-        button {
-            display: inline-block;
-            margin: 0 5px;
-            padding: 6px 12px;
-            background-color: #4361ee;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #364fc7;
-        }
-
-        #export-csv-btn {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
+        .message-box {
+            transition: all 0.3s ease-in-out;
         }
     </style>
 </head>
 
-<body>
-    <div class="container">
-        <h1>Admin Dashboard</h1>
+<body class="bg-gray-100 p-4 sm:p-6 md:p-8">
+    <div class="container mx-auto max-w-5xl bg-white p-6 sm:p-8 md:p-10 rounded-lg shadow-xl">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-6">Admin Dashboard</h1>
 
-        <div class="stats">
-            <div>Total Feedbacks: <span id="feedback-count">0</span></div>
-            <div>Registered Students: <span id="student-count">0</span></div>
+        <div class="flex flex-col sm:flex-row justify-around items-center text-lg font-medium text-gray-700 space-y-4 sm:space-y-0 mb-8">
+            <div class="bg-indigo-100 text-indigo-800 rounded-full px-4 py-2">
+                Total Feedbacks: <span id="feedback-count">0</span>
+            </div>
+            <div class="bg-teal-100 text-teal-800 rounded-full px-4 py-2">
+                Registered Students: <span id="student-count">0</span>
+            </div>
         </div>
 
-        <h2>Students Management</h2>
-        <table id="students-table">
+        <!-- Feedback Section with new button placement -->
+        <div class="flex justify-between items-center mb-4 mt-8">
+            <button id="feedback-btn" onclick="window.location.href='Coursemanagement.html'" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-lg hover:bg-indigo-700 transition duration-200">
+                Course
+            </button>
+            <h2 class="text-2xl font-bold text-gray-800">Feedback Trends</h2>
+            <div></div> <!-- Spacer for alignment -->
+        </div>
+        
+        <table id="feedback-trends-table" class="min-w-full bg-white border-collapse rounded-lg shadow-md mb-8">
             <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
+                    <th class="py-3 px-6 text-center">Course</th>
+                    <th class="py-3 px-6 text-center">Average Rating</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody class="text-gray-600 text-sm font-light">
+                <!-- Data will be populated here -->
+            </tbody>
         </table>
 
-        <h2>Feedback Trends</h2>
-        <table id="feedback-trends-table">
+        <!-- Students Section -->
+        <h2 class="text-2xl font-bold text-gray-800 text-center mb-4">Students Management</h2>
+        <table id="students-table" class="min-w-full bg-white border-collapse rounded-lg shadow-md mb-8">
             <thead>
-                <tr>
-                    <th>Course</th>
-                    <th>Average Rating</th>
+                <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
+                    <th class="py-3 px-6 text-center">Name</th>
+                    <th class="py-3 px-6 text-center">Email</th>
+                    <th class="py-3 px-6 text-center">Status</th>
+                    <th class="py-3 px-6 text-center">Actions</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody class="text-gray-600 text-sm font-light">
+                <!-- Data will be populated here -->
+            </tbody>
         </table>
 
-        <button id="export-csv-btn">Export Feedbacks as CSV</button>
+        <!-- Export button -->
+        <button id="export-csv-btn" class="block mx-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-full shadow-lg hover:bg-green-700 transition duration-200">
+            Export Feedbacks as CSV
+        </button>
     </div>
 
+    <!-- Message Box for alerts -->
+    <div id="message-box" class="message-box fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white font-semibold transform translate-y-full opacity-0"></div>
+
     <script>
-        const API_URL = 'https://your-backend-url.com/api';  // Replace with your backend URL
+        // Use an empty string for the API key as it will be provided in the runtime environment.
+        const API_URL = 'http://localhost:3000'; // Replace with your backend URL
         const token = localStorage.getItem('token'); // Admin JWT token from localStorage
 
+        const messageBox = document.getElementById('message-box');
+
+        // Function to display a custom message
+        function showMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.className = `message-box fixed bottom-4 right-4 p-4 rounded-lg shadow-lg font-semibold transform translate-y-0 opacity-100 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            setTimeout(() => {
+                messageBox.className = `message-box fixed bottom-4 right-4 p-4 rounded-lg shadow-lg font-semibold transform translate-y-full opacity-0 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            }, 3000);
+        }
+
         if (!token) {
-            alert('Unauthorized! Please login as Admin.');
-            window.location.href = '/login.html';
+            showMessage('Unauthorized! Please login as Admin.', true);
+            setTimeout(() => {
+                window.location.href = 'Admin_login.html';
+            }, 1000);
         }
 
         async function loadDashboard() {
-            const res = await fetch(`${API_URL}/admin/dashboard-stats`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            document.getElementById('feedback-count').innerText = data.totalFeedbacks;
-            document.getElementById('student-count').innerText = data.totalStudents;
+            try {
+                const res = await fetch(`${API_URL}/api/admin/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                document.getElementById('feedback-count').innerText = data.totalFeedbacks;
+                document.getElementById('student-count').innerText = data.totalStudents;
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+                showMessage('Failed to load dashboard stats.', true);
+            }
         }
 
         async function loadStudents() {
-            const res = await fetch(`${API_URL}/admin/students`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-
-            const tbody = document.querySelector('#students-table tbody');
-            tbody.innerHTML = '';
-
-            data.students.forEach(student => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${student.name}</td>
-                    <td>${student.email}</td>
-                    <td>${student.blocked ? 'Blocked' : 'Active'}</td>
-                    <td>
-                        <button onclick="toggleBlock('${student._id}', ${student.blocked})">
-                            ${student.blocked ? 'Unblock' : 'Block'}
-                        </button>
-                        <button onclick="deleteUser('${student._id}')">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+            try {
+                const res = await fetch(`${API_URL}/admin/students`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const tbody = document.querySelector('#students-table tbody');
+                tbody.innerHTML = '';
+                data.forEach(student => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                    row.innerHTML = `
+                        <td class="py-3 px-6 text-left">${student.std_name}</td>
+                        <td class="py-3 px-6 text-left">${student.std_email}</td>
+                        <td class="py-3 px-6 text-center">${student.isBlocked ? 'Blocked' : 'Active'}</td>
+                        <td class="py-3 px-6 text-center">
+                            <button onclick="toggleBlock('${student._id}', ${student.isBlocked})" class="px-4 py-2 rounded-full text-white ${student.blocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'} transition duration-200">
+                                ${student.isBlocked ? 'Unblock' : 'Block'}
+                            </button>
+                            <button onclick="deleteUser('${student._id}')" class="px-4 py-2 rounded-full bg-gray-500 text-white hover:bg-gray-600 transition duration-200">
+                                Delete
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showMessage('Failed to load students data.', true);
+            }
         }
 
         async function loadFeedbackTrends() {
-            const res = await fetch(`${API_URL}/admin/feedback-trends`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-
-            const tbody = document.querySelector('#feedback-trends-table tbody');
-            tbody.innerHTML = '';
-
-            data.trends.forEach(trend => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${trend.courseName}</td>
-                    <td>${trend.avgRating.toFixed(2)}</td>
-                `;
-                tbody.appendChild(row);
-            });
+            try {
+                const res = await fetch(`${API_URL}/admin/feedback-trends`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const tbody = document.querySelector('#feedback-trends-table tbody');
+                tbody.innerHTML = '';
+                data.trends.forEach(trend => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                    row.innerHTML = `
+                        <td class="py-3 px-6 text-left">${trend.courseName}</td>
+                        <td class="py-3 px-6 text-center">${trend.avgRating.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading feedback trends:', error);
+                showMessage('Failed to load feedback trends.', true);
+            }
         }
 
         async function toggleBlock(userId, isBlocked) {
-            await fetch(`${API_URL}/admin/block-user/${userId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+            try {
+                const res = await fetch(`${API_URL}/admin/block-user/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (res.ok) {
+                    showMessage(`User ${isBlocked ? 'unblocked' : 'blocked'} successfully!`);
+                    loadStudents();
+                } else {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || 'Failed to toggle user block status.');
                 }
-            });
-            loadStudents();
+            } catch (error) {
+                console.error('Error toggling block status:', error);
+                showMessage(error.message, true);
+            }
         }
 
         async function deleteUser(userId) {
-            await fetch(`${API_URL}/admin/delete-user/${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            loadStudents();
+            try {
+                const res = await fetch(`${API_URL}/admin/delete-user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showMessage('User deleted successfully!');
+                    loadStudents();
+                } else {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || 'Failed to delete user.');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showMessage(error.message, true);
+            }
         }
 
         async function exportCSV() {
-            const res = await fetch(`${API_URL}/admin/export-feedbacks`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const blob = await res.blob();
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = 'feedbacks.csv';
-            link.click();
+            try {
+                const res = await fetch(`${API_URL}/admin/export-feedbacks`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const blob = await res.blob();
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = 'feedbacks.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessage('CSV export started.');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                showMessage('Failed to export CSV.', true);
+            }
         }
 
         document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
@@ -207,5 +235,4 @@
         loadFeedbackTrends();
     </script>
 </body>
-
 </html>
