@@ -289,32 +289,11 @@ class Feedback_Database {
             throw new Error("An unexpected error occurred while editing feedback.");
         }
     }
-    async GetFilteredFeedback(courseId, studentEmail, rating) {
+    async GetFilteredFeedback() {
         try {
-            const filter = {};
-
-            // Apply course filter if provided
-            if (courseId) {
-                    filter.course_id = courseId;    
-            }
-
-            // Apply student email filter if provided
-            if (studentEmail) {
-                const student = await this.database.collection('Student').findOne({ std_email: studentEmail }, { projection: { _id: 1 } });
-                if (student) {
-                    filter.std_id = student;
-                } else {
-                    return [];
-                }
-            }
-
-            // Apply rating filter if provided, converting the string to a number
-            if (!rating) {
-                filter.rating=rating
-            }
 
             // Find the feedback documents based on the constructed filter
-            const result = await this.database.collection('Feedback').find(filter).toArray();
+            const result = await this.database.collection('Feedback').find().toArray();
             console.log(result);
             return result;
         } catch (error) {

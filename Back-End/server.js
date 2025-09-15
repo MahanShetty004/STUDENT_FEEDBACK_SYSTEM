@@ -416,7 +416,7 @@ app.get('/admin/filter-feedbacks',authMiddleware,adminMiddleware,async(req,res)=
     const{course,studentEmail,rating}=req.query;
     console.log(course,studentEmail,rating);    
     try{
-         const result= await db.GetFilteredFeedback(courseId, studentEmail, rating);      
+         const result= await db.GetFilteredFeedback();      
             res.status(200).json(result);
 
     }
