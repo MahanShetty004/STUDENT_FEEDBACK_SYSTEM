@@ -226,7 +226,7 @@ class Feedback_Database {
                 course_id: course_id,
                 rating: rating,
                 comment: message,
-                coursename: admin.ad_name
+                coursename: admin.course
             });
             return result.insertedId;
         }
@@ -289,49 +289,40 @@ class Feedback_Database {
             throw new Error("An unexpected error occurred while editing feedback.");
         }
     }
-    async GetAdminDrivenFilteredFeedback(adminId, courseId, studentId, rating) {
+    async GetFilteredFeedback(courseId, studentEmail, rating) {
         try {
-            if (!ObjectId.isValid(adminId)) {
-                throw new Error("Invalid admin ID.");
-            }
             const filter = {};
-            let targetCourseIds = [];
+
+            // Apply course filter if provided
             if (courseId) {
-                if (!ObjectId.isValid(courseId)) {
-                    throw new Error("Invalid course ID.");
-                }
-                const course = await this.database.collection('Course').findOne({
-                    _id: new ObjectId(courseId),
-                    ad_id: new ObjectId(adminId)
-                });
-                if (!course) {
+                    filter.course_id = courseId;    
+            }
+
+            // Apply student email filter if provided
+            if (studentEmail) {
+                const student = await this.database.collection('Student').findOne({ std_email: studentEmail }, { projection: { _id: 1 } });
+                if (student) {
+                    filter.std_id = student;
+                } else {
                     return [];
                 }
-                targetCourseIds = [new ObjectId(courseId)];
-            } else {
-                const courses = await this.database.collection('Course').find({ ad_id: new ObjectId(adminId) }, { _id: 1 }).toArray();
-                targetCourseIds = courses.map(c => c._id);
             }
-            if (targetCourseIds.length === 0) {
-                return [];
+
+            // Apply rating filter if provided, converting the string to a number
+            if (!rating) {
+                filter.rating=rating
             }
-            filter.course_id = { $in: targetCourseIds };
-            if (studentId) {
-                if (!ObjectId.isValid(studentId)) {
-                    throw new Error("Invalid student ID.");
-                }
-                filter.std_id = new ObjectId(studentId);
-            }
-            if (rating) {
-                filter.rating = parseInt(rating);
-            }
+
+            // Find the feedback documents based on the constructed filter
             const result = await this.database.collection('Feedback').find(filter).toArray();
+            console.log(result);
             return result;
         } catch (error) {
             console.error("An unexpected error occurred during filtered feedback retrieval:", error);
             throw new Error("An unexpected error occurred while retrieving feedback.");
         }
     }
+
     async GetStudentFilteredFeedback(studentId) {
         try {
             if (!ObjectId.isValid(studentId)) {
@@ -475,43 +466,43 @@ class Feedback_Database {
             throw new Error("An unexpected error occurred while blocking the user.");
         }
     }
-    async Blockornot(shouldBlock,adminId, userId) {
+    async Blockornot(shouldBlock, adminId, userId) {
         try {
             console.log(userId);
-        if (!ObjectId.isValid(userId)) {
-            throw new Error("Invalid student ID.");
-        }
-        if (!ObjectId.isValid(adminId)) {
-            throw new Error("Invalid Admin ID.");
-        }
+            if (!ObjectId.isValid(userId)) {
+                throw new Error("Invalid student ID.");
+            }
+            if (!ObjectId.isValid(adminId)) {
+                throw new Error("Invalid Admin ID.");
+            }
 
-        // Convert string IDs to ObjectId type for the database query
-        const stdObjId = new ObjectId(userId);
-        const adObjId = new ObjectId(adminId);
+            // Convert string IDs to ObjectId type for the database query
+            const stdObjId = new ObjectId(userId);
+            const adObjId = new ObjectId(adminId);
 
-        if (shouldBlock) {
-            // Block the user by inserting a new document
-            const result = await this.database.collection('Block_user').insertOne({
-                std_id: stdObjId,
-                ad_id: adObjId
-            });
-            // Returns true if a document was successfully inserted
-            return result.insertedId != null;
-        } else {
-            // Unblock the user by deleting an existing document
-            const result = await this.database.collection('Block_user').deleteOne({
-                std_id: stdObjId
-            });
-            // Returns true if a document was deleted
-            return result.deletedCount > 0;
+            if (shouldBlock) {
+                // Block the user by inserting a new document
+                const result = await this.database.collection('Block_user').insertOne({
+                    std_id: stdObjId,
+                    ad_id: adObjId
+                });
+                // Returns true if a document was successfully inserted
+                return result.insertedId != null;
+            } else {
+                // Unblock the user by deleting an existing document
+                const result = await this.database.collection('Block_user').deleteOne({
+                    std_id: stdObjId
+                });
+                // Returns true if a document was deleted
+                return result.deletedCount > 0;
+            }
+        } catch (error) {
+            // Log the specific error for debugging
+            console.error("Database Error in Blockornot:", error.message);
+            throw new Error("An unexpected error occurred while processing the request.");
         }
-    } catch (error) {
-        // Log the specific error for debugging
-        console.error("Database Error in Blockornot:", error.message);
-        throw new Error("An unexpected error occurred while processing the request.");
     }
-    }
-    
+
     async deleteUser(stdid) {
         try {
             if (!ObjectId.isValid(stdid)) {
@@ -596,25 +587,25 @@ class Feedback_Database {
             throw error;
         }
     }
-    async  toggleUserBlockStatus(userId) {
-    // 1. Find the user in our mock database.
-    const user = users.find(u => u.id === userId);
+    async toggleUserBlockStatus(userId) {
+        // 1. Find the user in our mock database.
+        const user = users.find(u => u.id === userId);
 
-    // 2. If the user is not found, throw an error.
-    if (!user) {
-        // We throw an error here so the calling function (the route)
-        // can handle the response gracefully.
-        const error = new Error("User not found.");
-        error.status = 404; // Add a status code for the route handler to use
-        throw error;
+        // 2. If the user is not found, throw an error.
+        if (!user) {
+            // We throw an error here so the calling function (the route)
+            // can handle the response gracefully.
+            const error = new Error("User not found.");
+            error.status = 404; // Add a status code for the route handler to use
+            throw error;
+        }
+
+        // 3. Toggle the user's blocked status.
+        user.isBlocked = !user.isBlocked;
+
+        // 4. Return the updated user object.
+        return user;
     }
-
-    // 3. Toggle the user's blocked status.
-    user.isBlocked = !user.isBlocked;
-
-    // 4. Return the updated user object.
-    return user;
-}
 
     async BlockStatus(adm_d) {
         try {

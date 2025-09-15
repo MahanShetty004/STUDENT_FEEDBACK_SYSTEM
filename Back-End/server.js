@@ -240,7 +240,6 @@ app.post('/api/student/feedbacks', authMiddleware, async (req, res) => {
     if (!courseId || !rating || !message) {
         return res.status(400).json({ message: "All fields are required." });
     }
-
     try {
         const newFeedback = await db.Insert_Feedback(studentId, courseId, rating, message);
         res.status(201).json({
@@ -377,7 +376,7 @@ app.post('/admin/block-user/:userId', async (req, res) => {
         const { userId } = req.params;
 
         // 2. Call the dedicated function to handle the business logic.
-        const updatedUser = await toggleUserBlockStatus(userId);
+        const updatedUser = await BlockStatus(userId);
 
         // 3. Send a success response with the updated user data.
         res.status(200).json({ 
@@ -401,6 +400,31 @@ app.delete('/admin/delete-user/:id',authMiddleware,adminMiddleware,async(req,res
         throw error;
     }
 })
+app.get('/admin/courses',authMiddleware,adminMiddleware,async(req,res)=>{
+    const id=req.user.id;
+    try{
+         const result= await db.GetCourses();
+            res.status(200).json(result);
+    }
+    catch(error)
+    {
+        throw error;
+    }
+});
+app.get('/admin/filter-feedbacks',authMiddleware,adminMiddleware,async(req,res)=>{
+    const id=req.user.id;
+    const{course,studentEmail,rating}=req.query;
+    console.log(course,studentEmail,rating);    
+    try{
+         const result= await db.GetFilteredFeedback(courseId, studentEmail, rating);      
+            res.status(200).json(result);
+
+    }
+    catch(error)
+    {
+        throw error;
+    }   
+});
 // Start the server after connecting to the database
 async function startServer() {
     try {

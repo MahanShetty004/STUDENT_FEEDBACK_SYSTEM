@@ -218,7 +218,7 @@
                 div.classList.add('feedback-item');
 
                 const course = document.createElement('p');
-                course.innerHTML = `<strong>Course:</strong> ${fb.courseName || 'N/A'}`;
+                course.innerHTML = `<strong>Course:</strong> ${fb.courseName}`;
 
                 const ratingInput = document.createElement('input');
                 ratingInput.type = 'number';
@@ -269,7 +269,7 @@
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        course: courseId,
+                        courseId: courseId,
                         rating,
                         message
                     })

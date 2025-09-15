@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin - Filter Feedbacks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        select, input {
+            padding: 8px;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #364fc7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Filter Feedbacks</h1>
+
+        <div class="filters">
+            <select id="course-filter">
+                <option value="">All Courses</option>
+            </select>
+
+            <select id="rating-filter">
+                <option value="">All Ratings</option>
+                <option value="1">1 Star</option>
+                <option value="2">2 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="5">5 Stars</option>
+            </select>
+
+            <input type="text" id="student-email-filter" placeholder="Student Email"/>
+
+            <button onclick="filterFeedback()">Filter</button>
+        </div>
+
+        <table id="feedback-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Rating</th>
+                    <th>Message</th>
+                    <th>Student Email</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';  // Replace with your backend URL
+        const token = localStorage.getItem('token');  // Admin JWT Token
+
+        if (!token) {
+            alert('Unauthorized! Please login as Admin.');
+            window.location.href = '/login.html';
+        }
+
+        // Populate Courses Dropdown
+        async function loadCourses() {
+            const res = await fetch(`${API_URL}/admin/courses`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const select = document.getElementById('course-filter');
+
+            data.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course._id;
+                option.textContent = course.course;
+                select.appendChild(option);
+            });
+        }
+
+        // Filter feedbacks based on user input
+        async function filterFeedback() {
+            const course = document.getElementById('course-filter').value;
+            const rating = document.getElementById('rating-filter').value;
+            const studentEmail = document.getElementById('student-email-filter').value.trim();
+
+            const queryParams = new URLSearchParams();
+            if (course) queryParams.append('course', course);
+            if (rating) queryParams.append('rating', rating);
+            if (studentEmail) queryParams.append('studentEmail', studentEmail);
+
+            const res = await fetch(`${API_URL}/admin/filter-feedbacks?${queryParams.toString()}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+
+            const tbody = document.querySelector('#feedback-table tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(fb => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${fb.coursename}</td>
+                    <td>${fb.rating}</td>
+                    <td>${fb.comment}</td>
+                    <td>${studentEmail}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Initialize
+        loadCourses();
+    </script>
+</body>
+
+</html>
