@@ -75,12 +75,13 @@ class Feedback_Database {
             return result.insertedId;
         }
         catch (error) {
-            if (error.code == 11000) {
+            if (error.code === 11000) {
                 throw new Error("Error: A user with this name/email already exists.");
             } else {
                 console.error("An unexpected error occurred during insertion:", error);
+                // Correctly throw a new error with a simple, generic message
+                throw new Error("An unexpected error occurred during signup.");
             }
-            throw error;
         }
     }
     async Insert_Admin(user_name, password, email) {
@@ -107,12 +108,13 @@ class Feedback_Database {
             return result.insertedId;
         }
         catch (error) {
-            if (error.code == 11000) {
+            if (error.code ===11000) {
                 console.error("Error: A user with this name/email already exists.");
+                throw new Error("An account with this email already exists.");
             } else {
                 console.error("An unexpected error occurred during insertion:", error);
+                throw new Error("An unexpected error occurred during signup.");
             }
-            throw error;
         }
     }
     async Student_Login_check(email, password) {
@@ -128,12 +130,12 @@ class Feedback_Database {
                 return { success: true, message: "Login successful.", user: user };
             } else {
                 console.error("Incorrect password for user:", user.std_email);
-                throw new Error( "Invalid email or password." );
+                throw new Error("Invalid email or password." );
             }
         }
         catch (error) {
             console.error("An unexpected error occurred during the check:", error);
-            throw error;
+            throw new Error("An unexpected error occurred during login.");
         }
     }
     async Admin_Login_check(email, password) {
@@ -141,20 +143,20 @@ class Feedback_Database {
             const user = await this.database.collection('Admin').findOne({ ad_email: email });
             if (!user) {
                 console.error("User not found.");
-                throw new Error("Invalid email or password." );
+                throw new Error( "Invalid email or password." );
             }
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (passwordMatch) {
-                console.log("Login successful for user:", user.ad_email);
+                console.log("Login successful for user:", user.std_email);
                 return { success: true, message: "Login successful.", user: user };
             } else {
-                console.error("Incorrect password for user:", user.ad_email);
+                // console.error("Incorrect password for user:", user.std_email);
                 throw new Error("Invalid email or password." );
             }
         }
         catch (error) {
             console.error("An unexpected error occurred during the check:", error);
-            throw error;
+            throw new Error("An unexpected error occurred during login.");
         }
     }
     async Insert_Courses(adminId, course) {
@@ -165,13 +167,13 @@ class Feedback_Database {
             }
             const result = await this.database.collection('Course').insertOne({
                 course: course,
-                ad_id: adminId,
+                ad_id: new ObjectId(adminId),
             });
             return result.insertedId;
         }
         catch (error) {
             console.error("An unexpected error occurred during insertion:", error);
-            throw error;
+            throw new Error("An unexpected error occurred while adding the course.");
         }
     }
     async Delete_Course(courseId) {
@@ -193,7 +195,7 @@ class Feedback_Database {
         }
         catch (error) {
             console.error("An unexpected error occurred during deletion:", error);
-            throw error;
+            throw new Error("An unexpected error occurred while deleting the course.");
         }
     }
     async Insert_Feedback(Student_id, course_id, rating, message) {
@@ -215,9 +217,6 @@ class Feedback_Database {
             console.log(blk);
             if (blk)
                 throw new Error("The Student has been Blocked by the user");
-            if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-                throw new Error("Rating must be a number between 1 and 5.");
-            }
             if (typeof message !== 'string' || message.trim().length === 0) {
                 throw new Error("Feedback message cannot be empty.");
             }
@@ -225,18 +224,20 @@ class Feedback_Database {
                 std_id: Student_id,
                 course_id: course_id,
                 rating: rating,
-                comment: message
+                comment: message,
+                coursename:admin.ad_name
             });
             return result.insertedId;
         }
         catch (error) {
             if (error.code === 11000) {
                 console.error("Error: Feedback alredy given");
+                throw new Error("Feedback has already been submitted for this course.");
             }
             else {
                 console.error("An unexpected error occurred during insertion:", error);
+                throw new Error("An unexpected error occurred while inserting feedback.");
             }
-            throw error;
         }
     }
     async Delete_Student_Feedback(std_feedback) {
@@ -249,15 +250,16 @@ class Feedback_Database {
             const result = await this.database.collection('Feedback').deleteOne(filter);
 
             if (result.deletedCount === 1) {
-                console.log(`Successfully deleted the Feedback  with ID: ${std_feedback}`);
-                return { success: true, message: `Feedback  ${std_feedback} deleted.` };
+                console.log(`Successfully deleted the Feedback with ID: ${std_feedback}`);
+                return { success: true, message: `Feedback ${std_feedback} deleted.` };
             } else {
                 console.log(`No course found with ID: ${std_feedback}`);
-                return { success: false, message: `No Feedback  found with ID: ${std_feedback}.` };
+                return { success: false, message: `No Feedback found with ID: ${std_feedback}.` };
             }
         }
         catch (error) {
             console.error("An unexpected error occurred during deletion:", error);
+            throw new Error("An unexpected error occurred while deleting feedback.");
         }
     }
     async Edit_Student_Feedback(std_feedback, rating, message) {
@@ -283,7 +285,7 @@ class Feedback_Database {
         }
         catch (error) {
             console.error("An unexpected error occurred during editing:", error);
-            throw error
+            throw new Error("An unexpected error occurred while editing feedback.");
         }
     }
     async GetAdminDrivenFilteredFeedback(adminId, courseId, studentId, rating) {
@@ -326,24 +328,33 @@ class Feedback_Database {
             return result;
         } catch (error) {
             console.error("An unexpected error occurred during filtered feedback retrieval:", error);
-            throw error;
+            throw new Error("An unexpected error occurred while retrieving feedback.");
         }
     }
-    async GetStudentFilteredFeedback(studentId, rating) {
+    async GetStudentFilteredFeedback(studentId) {
         try {
             if (!ObjectId.isValid(studentId)) {
                 throw new Error("Invalid student ID.");
             }
             const filter = {
-                std_id: new ObjectId(studentId)
+                std_id: studentId
             };
-            if (rating) {
-                filter.rating = parseInt(rating);
-            }
             const result = await this.database.collection('Feedback').find(filter).toArray();
+            console.log(result);
             return result;
         } catch (error) {
             console.error("An unexpected error occurred during filtered feedback retrieval:", error);
+            throw new Error("An unexpected error occurred while retrieving feedback.");
+        }
+    }
+    async GetCourses()
+    {
+        try{
+            const result=await this.database.collection('Course').find({}).toArray();
+            return result;
+        }
+        catch(error)
+        {
             throw error;
         }
     }
@@ -365,7 +376,7 @@ class Feedback_Database {
             }
             return { message: "Phone number updated successfully." };
         } catch (error) {
-            throw error;
+            throw new Error("An unexpected error occurred while updating the phone number.");
         }
     }
     async SetStudentDOB(stdid, dob) {
@@ -388,7 +399,7 @@ class Feedback_Database {
 
             return { message: "Date of birth updated successfully." };
         } catch (error) {
-            throw error;
+            throw new Error("An unexpected error occurred while updating the date of birth.");
         }
     }
     async SetStudentAddress(stdid, address) {
@@ -408,7 +419,7 @@ class Feedback_Database {
 
             return { message: "Address updated successfully." };
         } catch (error) {
-            throw error;
+            throw new Error("An unexpected error occurred while updating the address.");
         }
     }
     async SetPassword(std_id, oldpassword, newpassword) {
@@ -450,7 +461,7 @@ class Feedback_Database {
             };
         } catch (error) {
             console.error("Error updating password:", error.message);
-            throw error;
+            throw new Error("An unexpected error occurred while updating password.");
         }
     }
     async BlockUser(adid, stdid) {
@@ -468,7 +479,7 @@ class Feedback_Database {
         }
         catch (error) {
             console.error("Error while inserting", error);
-            throw error;
+            throw new Error("An unexpected error occurred while blocking the user.");
         }
     }
     async RemoveBlockUser(adid, stdid) {
@@ -492,7 +503,39 @@ class Feedback_Database {
         }
         catch (error) {
             console.error("Error while delting", error);
-            throw error;
+            throw new Error("An unexpected error occurred while unblocking the user.");
+        }
+    }
+    async GetAdminCourses(adminId) {
+        try {
+            if (!ObjectId.isValid(adminId)) {
+                throw new Error("Invalid Admin ID.");
+            }
+            const courses = await this.database.collection('Course').find({
+                ad_id: new ObjectId(adminId)
+            }).toArray();
+            return courses;
+        } catch (error) {
+            console.error("Error getting admin courses:", error);
+            throw new Error("An unexpected error occurred while getting admin courses.");
+        }
+    }
+    async Update_Course(courseId, newCourseName) {
+        try {
+            if (!ObjectId.isValid(courseId)) {
+                throw new Error("Invalid Course ID.");
+            }
+            const result = await this.database.collection('Course').updateOne(
+                { _id: new ObjectId(courseId) },
+                { $set: { course: newCourseName } }
+            );
+            if (result.matchedCount === 0) {
+                throw new Error("Course not found or no changes made.");
+            }
+            return { success: true, message: "Course updated successfully." };
+        } catch (error) {
+            console.error("Error updating course:", error);
+            throw new Error("An unexpected error occurred while updating the course.");
         }
     }
 }
