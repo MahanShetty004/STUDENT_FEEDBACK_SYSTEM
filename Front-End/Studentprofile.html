@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student - Profile Page</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #f5f6fa;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--secondary-color);
+            margin-bottom: 30px;
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .profile-container {
+            background-color: var(--card-background);
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            flex: 1;
+            min-width: 300px;
+            max-width: 600px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="date"],
+        textarea,
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        input[type="email"][readonly] {
+            background-color: #ecf0f1;
+            cursor: not-allowed;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .form-field-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .form-field-row .flex-grow {
+            flex-grow: 1;
+        }
+
+        .form-field-row button {
+            margin-top: 0;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .feedback-button {
+            margin-top: 15px;
+            margin-left: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Student - Profile Page</h1>
+
+    <div class="main-container">
+        <div class="profile-container">
+            <h2>Profile Info</h2>
+
+            <label for="name">Name</label>
+            <div class="form-field-row">
+                <input type="text" id="name" class="flex-grow" />
+                <button onclick="updateName()"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+
+            <label for="email">Email (Read-only)</label>
+            <input type="email" id="email" readonly />
+
+            <label for="phone">Phone Number</label>
+            <div class="form-field-row">
+                <input type="text" id="phone" class="flex-grow" />
+                <button onclick="updatePhone()"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+
+            <label for="dob">Date of Birth</label>
+            <div class="form-field-row">
+                <input type="date" id="dob" class="flex-grow" />
+                <button onclick="updateDob()"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+
+            <label for="address">Address</label>
+            <div class="form-field-row">
+                <textarea id="address" rows="3" class="flex-grow"></textarea>
+                <button onclick="updateAddress()"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+        </div>
+
+        <div class="profile-container">
+            <h2>Change Password</h2>
+            <label for="currentPassword">Current Password</label>
+            <input type="password" id="currentPassword" />
+
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" />
+
+            <button onclick="changePassword()">Change Password</button>
+        </div>
+        
+        <button class="feedback-button" onclick="window.location.href='dashboard.html'">Feedbacks</button>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:3000';
+        const token = localStorage.getItem('token');
+        let profileLoaded = false;
+
+        document.addEventListener('DOMContentLoaded', loadProfile);
+
+        function loadProfile() {
+            if (profileLoaded) return;
+
+            fetch(`${API_URL}/api/student/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Failed to load profile. Status: ${res.status}`);
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    document.getElementById('name').value = data.user.std_name;
+                    document.getElementById('email').value = data.user.std_email;
+                    document.getElementById('phone').value = data.user.std_phoneno || '';
+                    document.getElementById('dob').value = data.user.DOB ? data.user.DOB.split('T')[0] : '';
+                    document.getElementById('address').value = data.user.Address || '';
+                    profileLoaded = true;
+                })
+                .catch(err => console.error('Error loading profile:', err));
+        }
+
+        function updateProfileField(field, value) {
+            fetch(`${API_URL}/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        [field]: value
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Failed to update ${field}. Status: ${res.status}`);
+                    }
+                    return res.json();
+                })
+                .then(() => {
+                    console.log(`${field} updated successfully!`);
+                    showMessageBox(`${field} updated successfully!`);
+                })
+                .catch(err => {
+                    console.error(`Error updating ${field}:`, err);
+                    showMessageBox(`Error: ${err.message}`);
+                });
+        }
+
+        function updateName() {
+            const name = document.getElementById('name').value.trim();
+            updateProfileField('std_name', name);
+        }
+
+        function updatePhone() {
+            const phone = document.getElementById('phone').value.trim();
+            updateProfileField('std_phoneno', phone);
+        }
+
+        function updateDob() {
+            const dob = document.getElementById('dob').value;
+            updateProfileField('DOB', dob);
+        }
+
+        function updateAddress() {
+            const address = document.getElementById('address').value.trim();
+            updateProfileField('Address', address);
+        }
+
+        function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+
+            if (newPassword.length < 8 || !/[0-9]/.test(newPassword) || !/[!@#$%^&*]/.test(newPassword)) {
+                return showMessageBox('New password must have at least 8 characters, 1 number, and 1 special character.');
+            }
+
+            fetch(`${API_URL}/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        currentPassword,
+                        newPassword
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Failed to change password. Status: ${res.status}`);
+                    }
+                    return res.json();
+                })
+                .then(() => {
+                    console.log('Password changed successfully!');
+                    showMessageBox('Password changed successfully!');
+                })
+                .catch(err => {
+                    console.error('Error changing password:', err);
+                    showMessageBox(`Error: ${err.message}`);
+                });
+        }
+
+        function showMessageBox(message) {
+            const messageBox = document.getElementById('messageBox');
+            document.getElementById('messageText').textContent = message;
+            messageBox.style.display = 'block';
+        }
+
+        const messageBoxHTML = `
+            <div id="messageBox" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                padding: 20px;
+                background-color: white;
+                border: 1px solid #ccc;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+                border-radius: 8px;
+                text-align: center;
+                display: none;
+                max-width: 300px;
+            ">
+                <p id="messageText"></p>
+                <button onclick="document.getElementById('messageBox').style.display='none'" style="margin-top: 15px; padding: 8px 16px; border: none; border-radius: 5px; background-color: var(--primary-color); color: white; cursor: pointer;">OK</button>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', messageBoxHTML);
+    </script>
+</body>
+
+</html>

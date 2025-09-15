@@ -86,6 +86,7 @@ app.post('/api/student/login', async (req, res) => {
             const token = jwt.sign({
                 id: result.user._id.toHexString(),
                 email: result.user.std_email,
+                name: result.user.std_name,
                 role: 'student'
             }, JWT_SECRET, { expiresIn: '1h' });
             return res.status(200).json({
@@ -153,10 +154,12 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 // Protected route for student profile
-app.get('/api/student/profile', authMiddleware, (req, res) => {
+app.get('/api/student/profile', authMiddleware, async(req, res) => {
+    const result=await db.GetStudentProfile(req.user.id);
+    console.log(result);
     res.status(200).json({
         message: "You have accessed a protected student route.",
-        user: req.user
+        user: result
     });
 });
 
@@ -237,9 +240,9 @@ app.post('/api/student/feedbacks', authMiddleware, async (req, res) => {
 
     try {
         const newFeedback = await db.Insert_Feedback(studentId, courseId, rating, message);
-        res.status(201).json({ 
-            message: "Feedback submitted successfully!", 
-            feedback: newFeedback 
+        res.status(201).json({
+            message: "Feedback submitted successfully!",
+            feedback: newFeedback
         });
     } catch (error) {
         console.error("Error submitting feedback:", error);
@@ -259,7 +262,7 @@ app.get('/api/student/feedbacks/me', authMiddleware, async (req, res) => {
         res.status(500).json({ message: "An unexpected error occurred." });
     }
 });
-app.get('/api/student/courses', authMiddleware,  async (req, res) => {
+app.get('/api/student/courses', authMiddleware, async (req, res) => {
     try {
         const courses = await db.GetCourses(req.user.id);
         res.status(200).json(courses);
@@ -279,7 +282,7 @@ app.put('/api/student/feedbacks/:id', authMiddleware, async (req, res) => {
     }
 
     try {
-        const result = await db.Edit_Student_Feedback(feedbackId, rating, message );
+        const result = await db.Edit_Student_Feedback(feedbackId, rating, message);
         if (result.success) {
             res.status(200).json({ message: "Feedback updated successfully!" });
         } else {
@@ -306,6 +309,52 @@ app.delete('/api/student/feedbacks/:id', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error("Error deleting feedback:", error);
         res.status(500).json({ message: "An unexpected error occurred." });
+    }
+});
+
+app.put('/me', authMiddleware, async (req, res) => {
+const { std_name, std_phoneno, DOB, Address } = req.body;
+    
+    // Create an empty object to store only the updates that were sent
+    const updates = {};
+    if (std_name) updates.std_name = std_name;
+    if (std_phoneno) updates.std_phoneno = std_phoneno;
+    if (DOB) updates.DOB = DOB;
+    if (Address) updates.Address = Address;
+
+    if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: 'No fields to update.' });
+    }
+
+    try {
+        const success = await db.updateUser(req.user.id, updates);
+        if (!success) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+        res.status(200).json({ message: 'Profile updated successfully.' });
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+});
+app.post('/change-password',authMiddleware, async (req, res) =>{
+    const { currentPassword, newPassword } = req.body;
+    try{
+
+        // Basic validation to ensure both fields are present
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Current and new password are required.' });
+        }
+        const success = await db.SetPassword(req.user.id,currentPassword, newPassword);
+        if (success) {
+            res.status(200).json({ message: 'Password changed successfully!' });
+        } else {
+            res.status(500).json({ message: 'Failed to update password.' });
+        }
+    }
+    catch(error){
+        console.error('Error changing password:', error);
+        res.status(500).json({ message: 'An unexpected server error occurred.' });
     }
 });
 // Start the server after connecting to the database

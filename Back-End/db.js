@@ -358,25 +358,26 @@ class Feedback_Database {
             throw error;
         }
     }
-    async SetStudentphonenum(stdid, phno) {
+    async updateUser(stdid, updates) {
         try {
+            console.log(stdid);
             if (!ObjectId.isValid(stdid)) {
                 throw new Error("Invalid student ID.");
             }
-            const filter = {
-                _id: new ObjectId(stdid)
-            };
+            console.log(updates);
+            const filter = { _id: new ObjectId(stdid) };
 
-            if (!validator.isMobilePhone(phno, 'any')) {
-                throw new Error("Invalid phone number format.");
-            }
-            const result = await this.database.collection('Student').updateOne(filter, { $set: { std_phoneno: phno } });
+        const result = await this.database.collection('Student').updateOne(
+            filter,          
+            { $set: updates }    
+        );  
+           // The update operation using $set
             if (result.matchedCount === 0) {
                 throw new Error("Student not found.");
             }
-            return { message: "Phone number updated successfully." };
+            return { message: " updated successfully." };
         } catch (error) {
-            throw new Error("An unexpected error occurred while updating the phone number.");
+           throw error;
         }
     }
     async SetStudentDOB(stdid, dob) {
@@ -424,6 +425,7 @@ class Feedback_Database {
     }
     async SetPassword(std_id, oldpassword, newpassword) {
         try {
+            console.log(std_id);
             if (!ObjectId.isValid(std_id)) {
                 throw new Error("Invalid student ID.");
             }
@@ -437,15 +439,6 @@ class Feedback_Database {
             const passwordMatch = await bcrypt.compare(oldpassword, user.password);
             if (!passwordMatch) {
                 throw new Error("Incorrect current password.");
-            }
-            if (!validator.isStrongPassword(newpassword, {
-                minLength: 8,
-                minNumbers: 1,
-                minSymbols: 1,
-                minLowercase: 0,
-                minUppercase: 0
-            })) {
-                throw new Error("Password must be at least 8 characters long and contain at least 1 number and 1 special character.");
             }
             const hashedPassword = await bcrypt.hash(newpassword, 10);
             const result = await this.database.collection('Student').updateOne(filter, {
@@ -536,6 +529,21 @@ class Feedback_Database {
         } catch (error) {
             console.error("Error updating course:", error);
             throw new Error("An unexpected error occurred while updating the course.");
+        }
+    }
+    async GetStudentProfile(std_id){
+        try{
+            if (!ObjectId.isValid(std_id)) {
+                throw new Error("Invalid Student ID.");
+            }
+            const filter = {
+                _id: new ObjectId(std_id)
+            };
+            const student=await this.database.collection('Student').findOne(filter);
+            return student;
+        }
+        catch(error){
+            throw error;
         }
     }
 }
